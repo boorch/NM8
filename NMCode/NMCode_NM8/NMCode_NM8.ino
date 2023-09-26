@@ -357,14 +357,58 @@ void BUTTONS() {
           // Button is released
           if (!(i >= 8 && i <= 11)) {
             // For buttons 1 to 8, do nothing when released (toggle behavior)
-          } else {
-            // For buttons 9 to 12, send Note Off when released (momentary behavior)
-            midiPacket[2] = Channel_SelectOFF;
-            midiPacket[3] = ButtonNote;
-            midiPacket[4] = 0;
+} else {
+  // Button is released
+  if (!(i >= 8 && i <= 11)) {
+    // For buttons 1 to 8, do nothing when released (toggle behavior)
+  } else {
+          // For buttons 9 to 12, send two consecutive Note Off messages when released
+          midiPacket[2] = Channel_SelectOFF;
+          midiPacket[4] = 0;
+
+          if (i == 8) {
+            // Button 9 (two consecutive notes)
+            midiPacket[3] = 12;
             pCharacteristic->setValue(midiPacket, 5);
             pCharacteristic->notify();
+
+            midiPacket[3] = 13;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();      
+          } else if (i == 9) {
+            // Button 10 (two consecutive notes)
+            midiPacket[3] = 14;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();
+
+            midiPacket[3] = 15;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();      
+          } else if (i == 10) {
+            // Button 11 (two consecutive notes)
+            midiPacket[3] = 16;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();
+
+            midiPacket[3] = 17;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();      
+          } else if (i == 11) {
+            // Button 12 (two consecutive notes)
+            midiPacket[3] = 18;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();
+
+            midiPacket[3] = 19;
+            pCharacteristic->setValue(midiPacket, 5);
+            pCharacteristic->notify();      
           }
+
+          pCharacteristic->setValue(midiPacket, 5);
+          pCharacteristic->notify();
+        }
+      }
+
         }
         buttonPState[i] = buttonCstate[i];
       }

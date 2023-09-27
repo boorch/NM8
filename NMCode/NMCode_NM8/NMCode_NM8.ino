@@ -520,10 +520,10 @@ void potaverage2() {
       potCState = 64; // Inside the deadzone, set to 64
     } else if (potCState < midPoint) {
       // Map the left side of the slider position to the desired output range
-      potCState = map(potCState, 0, midPoint, 0, 63);
+      potCState = map(potCState, 0, midPoint - (sliderDeadZone / 2), 0, 63);
     } else {
       // Map the right side of the slider position to the desired output range
-      potCState = map(potCState, midPoint, 4095, 65, 127);
+      potCState = map(potCState, midPoint + (sliderDeadZone / 2), 4095, 65, 127);
       potCState = constrain(potCState, 65, 127); // Ensure it's within 64-127
     }
 

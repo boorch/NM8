@@ -20,14 +20,25 @@
     This software changes/adds some functionality
     to turn NMVSE into a "live tool" for Dirtywave M8.
     The top 8 buttons for track used as track mutes
-    and both the knob and the pot sends MIDI CC Messages.
+    (toggle behaviour) and both the knob and the pot
+    sends MIDI CC Messages. The bottom 4 buttons are
+    used to mute tracks 1-2, 3-4, 5-6 and 7-8
+    (momentary behaviour) 
 
     There's a very barebones "deadzone" implementation
     for the fader so it can be used "comfortably" with
     the DJFX Filter. The goal was to easily stay on the
     value 80 for DJFX filter where neither of the filters
     are engaged, when the fader is roughly in the middle
-    (where the deadzone is).
+    (where the deadzone is). When the fader is "outside"
+    of the deadzone, the green led blinks. When it's in
+    the deadzone, green led is constantly ON.
+
+    
+    Deadzone behaviour can be toggled on or off by
+    pressing buttons 9-10-11-12 simultaneously.
+    When deadzone behaviour is OFF, green led is always OFF.
+
 */
 
 
@@ -83,19 +94,29 @@ int buttonPState[button] = {0}; // Button previous state
 int OffNote[button] = {0};
 int debounceDelay = 5;
 int lastDebounceTime[button] = {0};
+
 int i = 0;
+int i2 = 0;
+
 const int numReadings = 15;
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
-int total = 0;                  // the running total
+int total = 0;
 int average1 = 0; // average current state
 int lastaverage1 = 0; // average previous state
+
+const int numReadings2 = 15;
+int readings2[numReadings2];      // the readings from the analog input 2
+int readIndex2 = 0;              // the index of the current reading 2
+int total2 = 0;                  // the running total 2
 int average2 = 0; // average current state 2
 int lastaverage2 = 0; // average previous state 2
 
-  const int midPoint = 2047; // Midpoint of the 12-bit range (0-4095)
-  const int sliderDeadZone = 1024;  // Example value, adjust as needed
-  unsigned long lastBlinkTime = 0;
+bool isDeadzoneEnabled = true;
+
+const int midPoint = 2047; // Midpoint of the 12-bit range (0-4095)
+const int sliderDeadZone = 1024;  // Example value, adjust as needed
+unsigned long lastBlinkTime = 0;
 
 
 BLECharacteristic *pCharacteristic;
@@ -414,6 +435,16 @@ void BUTTONS() {
       }
     }
   }
+
+  // Check if buttons 9, 10, 11, and 12 are pressed simultaneously
+  if (buttonCstate[8] && buttonCstate[9] && buttonCstate[10] && buttonCstate[11]) {
+    // Toggle the deadzone feature
+    isDeadzoneEnabled = !isDeadzoneEnabled;
+    
+    // Delay for a short time to prevent rapid toggling
+    delay(100);
+  }
+
 }
 
 
@@ -449,6 +480,33 @@ void potaverage1() {
   }
 }
 
+void potaverage2nodeadzone() {
+  
+  for (int p = 0; p < 15; p++) {
+  potCState = analogRead(potPin);
+  midiCState2 = map(potCState, 0, 4095, 0, 127);
+  
+  // subtract the last reading:
+  total2 = total2 - readings2[readIndex2];
+  // read from the sensor:
+  readings2[readIndex2] = midiCState2;
+  // add the reading to the total:
+  total2 = total2 + readings2[readIndex2];
+  // advance to the next position in the array:
+  readIndex2 = readIndex2 + 1;
+
+  // if we're at the end of the array...
+  if (readIndex2 >= numReadings2) {
+    // ...wrap around to the beginning:
+    readIndex2 = 0;
+  }
+
+  // calculate the average:
+  average2 = total2 / numReadings2;
+  delay(1);        // delay in between reads for stability
+  }
+}
+
 void potaverage2() {
 
   for (int p = 0; p < 15; p++) {
@@ -470,22 +528,22 @@ void potaverage2() {
     }
 
     // subtract the last reading:
-    total = total - readings[readIndex];
+    total2 = total2 - readings2[readIndex2];
     // read from the sensor:
-    readings[readIndex] = potCState;
+    readings2[readIndex2] = potCState;
     // add the reading to the total:
-    total = total + readings[readIndex];
+    total2 = total2 + readings2[readIndex2];
     // advance to the next position in the array:
-    readIndex = readIndex + 1;
+    readIndex2 = readIndex2 + 1;
 
     // if we're at the end of the array...
-    if (readIndex >= numReadings) {
+    if (readIndex2 >= numReadings2) {
       // ...wrap around to the beginning:
-      readIndex = 0;
+      readIndex2 = 0;
     }
 
     // calculate the average:
-    average2 = total / numReadings;
+    average2 = total2 / numReadings2;
     delay(1); // delay in between reads for stability
   }
 }
@@ -525,7 +583,6 @@ void ROTARY(){
 
 // Control Slider function for Default Mode
 void SLIDER() {
-  potaverage2();
 
   if (average2 != lastaverage2) {
     rotMoving2 = true;
@@ -534,28 +591,37 @@ void SLIDER() {
   }
 
 
-  // green led blinks if the slider is outside of deadzone
-  // and stays lit if inside the deadzone
+  if (isDeadzoneEnabled)
+  {
+      potaverage2();
+      // green led blinks if the slider is outside of deadzone
+      // and stays lit if inside the deadzone
 
-    // Check if the slider is outside of the deadzone
-  if (average2 != 64) {
-    // Slider is outside the deadzone, implement a blinking pattern for the green LED
-    unsigned long currentMillis = millis();
-    
-    // Define the blink frequency
-    const unsigned long blinkInterval = 30;
-    
-    // Toggle the green LED based on the blink interval
-    if (currentMillis - lastBlinkTime >= blinkInterval) {
-      lastBlinkTime = currentMillis;
-      
-      // Toggle the LED state
-      static bool ledState = LOW;
-      ledState = (ledState == LOW) ? HIGH : LOW;
-      digitalWrite(led_Green, ledState);
-    }
-  } else {
-    // Slider is inside the deadzone, the green LED stays lit
+        // Check if the slider is outside of the deadzone
+      if (average2 != 64) {
+        // Slider is outside the deadzone, implement a blinking pattern for the green LED
+        unsigned long currentMillis = millis();
+        
+        // Define the blink frequency
+        const unsigned long blinkInterval = 30;
+        
+        // Toggle the green LED based on the blink interval
+        if (currentMillis - lastBlinkTime >= blinkInterval) {
+          lastBlinkTime = currentMillis;
+          
+          // Toggle the LED state
+          static bool ledState = LOW;
+          ledState = (ledState == LOW) ? HIGH : LOW;
+          digitalWrite(led_Green, ledState);
+        }
+      } else {
+        // Slider is inside the deadzone, the green LED stays lit
+        digitalWrite(led_Green, HIGH);
+      }
+  }
+  else
+  {
+    potaverage2nodeadzone();
     digitalWrite(led_Green, LOW);
   }
 

@@ -591,33 +591,44 @@ void SLIDER() {
   }
 
 
-  if (isDeadzoneEnabled)
-  {
-      potaverage2();
-      // green led blinks if the slider is outside of deadzone
-      // and stays lit if inside the deadzone
+  if (isDeadzoneEnabled) {
+    potaverage2();
 
-        // Check if the slider is outside of the deadzone
-      if (average2 != 64) {
-        // Slider is outside the deadzone, implement a blinking pattern for the green LED
-        unsigned long currentMillis = millis();
-        
-        // Define the blink frequency
-        const unsigned long blinkInterval = 30;
-        
-        // Toggle the green LED based on the blink interval
-        if (currentMillis - lastBlinkTime >= blinkInterval) {
-          lastBlinkTime = currentMillis;
-          
-          // Toggle the LED state
-          static bool ledState = LOW;
-          ledState = (ledState == LOW) ? HIGH : LOW;
-          digitalWrite(led_Green, ledState);
-        }
-      } else {
-        // Slider is inside the deadzone, the green LED stays lit
-        digitalWrite(led_Green, HIGH);
+    // Calculate the blink interval based on the proximity to the slider limits
+    int minLimit = 64;  // Minimum limit of the deadzone
+    int maxLimit = 64;  // Maximum limit of the deadzone
+
+    // Calculate the distances from the minimum and maximum limits
+    int distToMin = abs(average2 - minLimit);
+    int distToMax = abs(average2 - maxLimit);
+
+    // Calculate the blinkInterval based on the distance from the deadzone limits
+    int blinkInterval = map(constrain(distToMin, 0, 63), 0, 63, 100, 30);
+    int blinkIntervalMax = map(constrain(distToMax, 0, 63), 0, 63, 100, 30);
+
+    // Use a conditional statement to choose the larger blink interval
+    if (blinkIntervalMax > blinkInterval) {
+      blinkInterval = blinkIntervalMax;
+    }
+
+    // Check if the slider is outside of the deadzone
+    if (average2 != 64) {
+      // Slider is outside the deadzone, implement a blinking pattern for the green LED
+      unsigned long currentMillis = millis();
+
+      // Toggle the green LED based on the calculated blink interval
+      if (currentMillis - lastBlinkTime >= blinkInterval) {
+        lastBlinkTime = currentMillis;
+
+        // Toggle the LED state
+        static bool ledState = LOW;
+        ledState = (ledState == LOW) ? HIGH : LOW;
+        digitalWrite(led_Green, ledState);
       }
+    } else {
+      // Slider is inside the deadzone, the green LED stays lit
+      digitalWrite(led_Green, HIGH);
+    }
   }
   else
   {

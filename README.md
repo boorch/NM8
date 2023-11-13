@@ -1,8 +1,8 @@
 ### Functionality
-Pot sends CC10
-Slider sends CC11
-Slider has a deadzone in the middle where it outputs value 64 constantly. So it can safely be used with the DJFX Filter of M8.
-
+- Pot sends CC10
+- Slider sends CC11
+- Slider has a deadzone in the middle where it outputs value 64 constantly. So it can safely be used with the DJFX Filter of M8.
+- First 8 buttons act as toggles to mute/unmute tracks 1 to 8. Last 4 buttons act as momentary switches that mute tracks 1&2, 3&4, 5&6, 7&8.
 
 ### Flashing Instructions (thanks <a href=https://github.com/roge-rm/NMCode> roge-rm </a>)
 1. Download <a href=https://www.arduino.cc/en/software>Arduino</a>
